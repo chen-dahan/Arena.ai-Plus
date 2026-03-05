@@ -189,10 +189,6 @@
   margin-top: 2px;
 }
 
-table th.lmarena-price-header,
-table td.lmarena-price-cell {
-  width: 100px !important;
-}
 
 /* ============================================ */
 /* Bang for Buck Column */
@@ -209,10 +205,6 @@ table td.lmarena-price-cell {
   font-weight: 400;
 }
 
-table th.lmarena-bfb-header,
-table td.lmarena-bfb-cell {
-  width: 105px !important;
-}
 
 /* ============================================ */
 /* Model Age Column */
@@ -228,10 +220,6 @@ table td.lmarena-bfb-cell {
   font-weight: 400;
 }
 
-table th.lmarena-age-header,
-table td.lmarena-age-cell {
-  width: 95px !important;
-}
 
 /* ============================================ */
 /* Context Window Column */
@@ -241,10 +229,6 @@ table td.lmarena-age-cell {
   text-align: right;
 }
 
-table th.lmarena-ctx-header,
-table td.lmarena-ctx-cell {
-  width: 105px !important;
-}
 
 /* ============================================ */
 /* Modalities Column */
@@ -289,10 +273,6 @@ html.light .lmarena-mod-icon {
   opacity: 0.3;
 }
 
-table th.lmarena-mod-header,
-table td.lmarena-mod-cell {
-  width: 100px !important;
-}
 
 /* ============================================ */
 /* Tooltip Styles */

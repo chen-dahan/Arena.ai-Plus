@@ -1165,6 +1165,9 @@
 
         // Copy sticky/background styles from native headers so ours scroll correctly
         this._matchNativeHeaderStyles(headerRow);
+
+        // Switch to auto-sizing columns + horizontal scroll
+        this._makeTableScrollable(table);
       }
 
       return this._processUnprocessedRows(table, modelColumnIndex, arenaScoreColumnIndex, showLoading);
@@ -1209,6 +1212,28 @@
       });
     }
 
+    // ── Auto-fit + Horizontal Scroll ──────────────────────────────────
+    // Switches the table to auto layout so every column sizes to its
+    // content, and makes the container horizontally scrollable when the
+    // columns don't fit (e.g. when the filter sidebar is open).
+    _makeTableScrollable(table) {
+      // Already processed?
+      if (table.dataset.lmarenaScrollable) return;
+      table.dataset.lmarenaScrollable = 'true';
+
+      // 1. Switch from fixed to auto layout so columns size to content
+      table.style.setProperty('table-layout', 'auto', 'important');
+
+      // 2. Make the closest scrollable ancestor (or parent) horizontally scrollable
+      const container = table.parentElement;
+      if (container) {
+        container.style.setProperty('overflow-x', 'auto', 'important');
+      }
+
+      // 3. Ensure all cells use nowrap so auto-layout can measure true content width
+      table.style.setProperty('white-space', 'nowrap', 'important');
+    }
+
 
     _processUnprocessedRows(table, modelColumnIndex, arenaScoreColumnIndex, showLoading) {
       const rows = table.querySelectorAll('tbody tr, tr');
@@ -1220,6 +1245,7 @@
 
         newRowCount++;
         row.setAttribute(CONFIG.ROW_MARKER, 'true');
+
         this._injectCell(row, modelColumnIndex, showLoading);
         if (!isPlainLeaderboard()) {
           this._injectBfbCell(row, modelColumnIndex, arenaScoreColumnIndex, showLoading);
@@ -1364,6 +1390,10 @@
       });
       document.querySelectorAll(`[${CONFIG.ROW_MARKER}]`).forEach(el => {
         el.removeAttribute(CONFIG.ROW_MARKER);
+      });
+      // Reset scrollable marker so _makeTableScrollable re-runs after navigation
+      document.querySelectorAll('table[data-lmarena-scrollable]').forEach(el => {
+        delete el.dataset.lmarenaScrollable;
       });
       document.querySelectorAll('.lmarena-price-header, .lmarena-price-cell, .lmarena-bfb-header, .lmarena-bfb-cell, .lmarena-age-header, .lmarena-age-cell, .lmarena-ctx-header, .lmarena-ctx-cell, .lmarena-mod-header, .lmarena-mod-cell').forEach(el => {
         el.remove();
