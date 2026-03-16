@@ -35,84 +35,6 @@
       <span class="version" id="popup-version"></span>
     </div>
 
-    <div class="section">
-      <div class="section-label">Pricing Column Settings</div>
-      <div class="select-row">
-        <div class="select-group">
-          <span class="select-sublabel">Provider</span>
-          <div class="select-wrapper">
-            <select id="data-provider">
-              <option value="openrouter">OpenRouter</option>
-              <option value="litellm">LiteLLM</option>
-              <option value="helicone">Helicone</option>
-            </select>
-            <span class="select-arrow">▾</span>
-          </div>
-        </div>
-        <div class="select-group">
-          <span class="select-sublabel">Price per</span>
-          <div class="select-wrapper">
-            <select id="token-unit">
-              <option value="1000000">1M tokens</option>
-              <option value="100000">100K tokens</option>
-            </select>
-            <span class="select-arrow">▾</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-label">Visible Columns</div>
-      <div class="columns-box">
-        <div class="column-item" data-tooltip="rank">
-          <input type="checkbox" id="col-rank" data-column="rank" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Rank Spread</span>
-        </div>
-        <div class="column-item">
-          <input type="checkbox" id="col-arena-score" data-column="arena-score" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Score</span>
-        </div>
-        <div class="column-item">
-          <input type="checkbox" id="col-votes" data-column="votes" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Votes</span>
-        </div>
-        <div class="column-item" data-tooltip="pricing">
-          <input type="checkbox" id="col-pricing" data-column="pricing" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label"><span id="pricing-label">Pricing per 1M</span></span>
-          <span class="badge">Plus</span>
-        </div>
-        <div class="column-item" data-tooltip="bang-for-buck">
-          <input type="checkbox" id="col-bang-for-buck" data-column="bang-for-buck" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Bang for Buck</span>
-          <span class="badge">Plus</span>
-        </div>
-        <div class="column-item" data-tooltip="model-age">
-          <input type="checkbox" id="col-model-age" data-column="model-age" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Model Age</span>
-          <span class="badge">Plus</span>
-        </div>
-        <div class="column-item" data-tooltip="context-window">
-          <input type="checkbox" id="col-context-window" data-column="context-window" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Context Size</span>
-          <span class="badge">Plus</span>
-        </div>
-        <div class="column-item" data-tooltip="modalities">
-          <input type="checkbox" id="col-modalities" data-column="modalities" checked hidden>
-          <div class="checkbox checked"></div>
-          <span class="column-label">Modalities</span>
-          <span class="badge">Plus</span>
-        </div>
-      </div>
-    </div>
-
     <div class="section" data-tooltip="notification">
       <div class="alert-row">
         <span class="bell-icon">🔔</span>
@@ -135,8 +57,8 @@
       </a>
     </div>
 
-    <div class="attribution" id="attribution">
-      All data is provided by <a href="https://helicone.ai" target="_blank">helicone.ai</a>
+    <div class="attribution">
+      All data is provided by <a href="https://openrouter.ai" target="_blank">OpenRouter</a>
     </div>
   </div>
 

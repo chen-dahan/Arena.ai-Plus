@@ -15,45 +15,24 @@
   // Configuration
   // ============================================
   const CONFIG = {
-    PROVIDERS: {
-      helicone: {
-        url: 'https://www.helicone.ai/api/llm-costs',
-        name: 'Helicone'
-      },
-      litellm: {
-        url: 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json',
-        name: 'LiteLLM'
-      },
-      openrouter: {
-        url: 'https://openrouter.ai/api/v1/models',
-        name: 'OpenRouter'
-      }
-    },
+    OPENROUTER_URL: 'https://openrouter.ai/api/v1/models',
     COLUMN_MARKER: 'data-lmarena-price-injected',
     ROW_MARKER: 'data-lmarena-row-processed',
     TOOLTIP_SHOW_DELAY: 50,
     TOOLTIP_HIDE_DELAY: 100,
     TOKEN_UNIT_KEY: 'lmarena-token-unit',
-    PROVIDER_KEY: 'lmarena-data-provider',
     COLUMN_VISIBILITY_KEY: 'lmarena-column-visibility',
     BATTLE_NOTIFICATION_KEY: 'lmarena-battle-notification',
     DEFAULT_TOKEN_UNIT: 1000000,
-    DEFAULT_PROVIDER: 'openrouter',
     DEFAULT_COLUMN_VISIBILITY: {
-      'rank': true,
-      'arena-score': true,
-      'votes': true,
-      'pricing': true,
       'bang-for-buck': true,
       'model-age': true,
-      'context-window': true,
       'modalities': true
     }
   };
 
   // Global settings
   let currentTokenUnit = CONFIG.DEFAULT_TOKEN_UNIT;
-  let currentProvider = CONFIG.DEFAULT_PROVIDER;
   let currentColumnVisibility = { ...CONFIG.DEFAULT_COLUMN_VISIBILITY };
   let battleNotificationEnabled = false;
 
@@ -135,18 +114,15 @@
     try {
       const result = await chrome.storage.sync.get([
         CONFIG.TOKEN_UNIT_KEY,
-        CONFIG.PROVIDER_KEY,
         CONFIG.COLUMN_VISIBILITY_KEY,
         CONFIG.BATTLE_NOTIFICATION_KEY
       ]);
       currentTokenUnit = result[CONFIG.TOKEN_UNIT_KEY] || CONFIG.DEFAULT_TOKEN_UNIT;
-      currentProvider = result[CONFIG.PROVIDER_KEY] || CONFIG.DEFAULT_PROVIDER;
       currentColumnVisibility = result[CONFIG.COLUMN_VISIBILITY_KEY] || { ...CONFIG.DEFAULT_COLUMN_VISIBILITY };
       battleNotificationEnabled = result[CONFIG.BATTLE_NOTIFICATION_KEY] ?? true;
     } catch (error) {
       console.warn('[LMArena Plus] Failed to load preferences:', error);
       currentTokenUnit = CONFIG.DEFAULT_TOKEN_UNIT;
-      currentProvider = CONFIG.DEFAULT_PROVIDER;
       currentColumnVisibility = { ...CONFIG.DEFAULT_COLUMN_VISIBILITY };
       battleNotificationEnabled = false;
     }
@@ -157,70 +133,10 @@
   // ============================================
 
   function applyColumnVisibility() {
-    // Apply visibility to regular table columns
-    const tables = document.querySelectorAll('table');
-    tables.forEach(table => {
-      // Get header cells to determine column indices
-      const headerRow = table.querySelector('thead tr, tr:first-child');
-      if (!headerRow) return;
-
-      const headers = Array.from(headerRow.querySelectorAll('th, td'));
-
-      // Build index map from actual column headers
-      const indexMap = {};
-      headers.forEach((header, idx) => {
-        // Skip ALL LMArena Plus injected headers
-        if (header.hasAttribute && header.hasAttribute(CONFIG.COLUMN_MARKER)) {
-          return;
-        }
-        if (header.classList.contains('lmarena-price-header') ||
-          header.classList.contains('lmarena-bfb-header') ||
-          header.classList.contains('lmarena-age-header') ||
-          header.classList.contains('lmarena-ctx-header') ||
-          header.classList.contains('lmarena-mod-header')) {
-          return;
-        }
-
-        const text = header.textContent.toLowerCase().trim();
-
-        // More specific matching to avoid false positives
-        // Rank Spread column - ONLY match if it contains BOTH 'rank' AND 'spread'
-        // Regular rank columns (just '#' or 'Rank') should NOT be affected
-        if (text.includes('rank') && text.includes('spread')) {
-          indexMap['rank'] = idx;
-        }
-        // Arena score - specifically "score" column, not just containing "score"
-        else if (text === 'arena score' || text === 'score' || text.includes('arena score')) {
-          indexMap['arena-score'] = idx;
-        }
-        // Votes
-        else if (text.includes('vote')) {
-          indexMap['votes'] = idx;
-        }
-        // NOTE: Model column is NOT mapped - it should NEVER be hidden
-      });
-
-      // Apply visibility to all rows
-      const allRows = table.querySelectorAll('tr');
-      allRows.forEach(row => {
-        const cells = row.querySelectorAll('th, td');
-
-        // Regular columns (excluding model which is always visible)
-        for (const [columnId, colIdx] of Object.entries(indexMap)) {
-          if (cells[colIdx]) {
-            cells[colIdx].style.display = currentColumnVisibility[columnId] ? '' : 'none';
-          }
-        }
-      });
-    });
-
-    // Apply visibility to LMArena Plus columns
     const columnVisibilityMap = {
-      pricing: { header: '.lmarena-price-header', cell: '.lmarena-price-cell' },
       'bang-for-buck': { header: '.lmarena-bfb-header', cell: '.lmarena-bfb-cell' },
       'model-age': { header: '.lmarena-age-header', cell: '.lmarena-age-cell' },
-      'context-window': { header: '.lmarena-ctx-header', cell: '.lmarena-ctx-cell' },
-      modalities: { header: '.lmarena-mod-header', cell: '.lmarena-mod-cell' }
+      'modalities': { header: '.lmarena-mod-header', cell: '.lmarena-mod-cell' }
     };
 
     for (const [key, selectors] of Object.entries(columnVisibilityMap)) {
@@ -447,7 +363,7 @@
      * Core matching logic: find best match in a map using prefix/suffix matching.
      * @param {Map} map - The map to search in
      * @param {string} searchTerm - The normalized search term
-     * @param {boolean} checkOperators - Whether to check operator-based matching (for Helicone)
+     * @param {boolean} checkOperators - Whether to check operator-based matching
      * @returns {any} The matched entry or null
      */
     _findMatchInMap(map, searchTerm, checkOperators = false) {
@@ -456,7 +372,7 @@
         return map.get(searchTerm);
       }
 
-      // 2. Operator-based matching (Helicone data only)
+      // 2. Operator-based matching
       if (checkOperators) {
         let operatorMatch = null;
         let operatorMatchLength = 0;
@@ -585,7 +501,7 @@
 
     async _fetchContextData() {
       try {
-        const response = await fetch(CONFIG.PROVIDERS.openrouter.url, { cache: 'no-store' });
+        const response = await fetch(CONFIG.OPENROUTER_URL, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
@@ -635,104 +551,30 @@
   class PricingService {
     constructor() {
       this.pricingMap = new Map();
-      this.currentProvider = null;
       this.isLoading = false;
     }
 
-    async initialize(provider) {
-      this.currentProvider = provider;
+    async initialize() {
       this.isLoading = true;
-      await this._fetchPricing(provider);
+      await this._fetchPricing();
       this.isLoading = false;
     }
 
-    async switchProvider(provider) {
-      this.pricingMap.clear();
-      this.currentProvider = provider;
-      await this.initialize(provider);
-    }
-
-    async _fetchPricing(provider) {
-      const config = CONFIG.PROVIDERS[provider];
-      if (!config) return;
-
+    async _fetchPricing() {
       try {
-        const response = await fetch(config.url, { cache: 'no-store' });
+        const response = await fetch(CONFIG.OPENROUTER_URL, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        this._buildPricingMap(data, provider);
+        this._buildPricingMap(data);
 
       } catch (error) {
-        console.error(`[LMArena Plus] Failed to fetch pricing from ${provider}:`, error);
+        console.error('[LMArena Plus] Failed to fetch pricing from OpenRouter:', error);
       }
     }
 
-    _buildPricingMap(data, provider) {
+    _buildPricingMap(data) {
       this.pricingMap.clear();
-
-      switch (provider) {
-        case 'helicone':
-          this._buildHeliconeMap(data);
-          break;
-        case 'litellm':
-          this._buildLiteLLMMap(data);
-          break;
-        case 'openrouter':
-          this._buildOpenRouterMap(data);
-          break;
-      }
-    }
-
-    _buildHeliconeMap(data) {
-      const entries = data.data || data;
-      if (!Array.isArray(entries)) return;
-
-      for (const entry of entries) {
-        const key = ModelMatcher.normalizeModelName(entry.model);
-        const pricing = {
-          input_cost_per_1m: entry.input_cost_per_1m || 0,
-          output_cost_per_1m: entry.output_cost_per_1m || 0,
-          operator: entry.operator || 'equals',
-          sourceModelName: entry.model
-        };
-
-        if (!this.pricingMap.has(key)) {
-          this.pricingMap.set(key, pricing);
-        }
-
-        const shortKey = key.split('/').pop();
-        if (shortKey && shortKey !== key && !this.pricingMap.has(shortKey)) {
-          this.pricingMap.set(shortKey, pricing);
-        }
-      }
-    }
-
-    _buildLiteLLMMap(data) {
-      for (const [modelName, modelData] of Object.entries(data)) {
-        if (modelName === 'sample_spec') continue;
-        if (!modelData.input_cost_per_token && !modelData.output_cost_per_token) continue;
-
-        const key = ModelMatcher.normalizeModelName(modelName);
-        const pricing = {
-          input_cost_per_1m: (modelData.input_cost_per_token || 0) * 1000000,
-          output_cost_per_1m: (modelData.output_cost_per_token || 0) * 1000000,
-          operator: 'equals',
-          sourceModelName: modelName
-        };
-
-        if (!this.pricingMap.has(key)) {
-          this.pricingMap.set(key, pricing);
-        }
-
-        const shortKey = key.split('/').pop();
-        if (shortKey && shortKey !== key && !this.pricingMap.has(shortKey)) {
-          this.pricingMap.set(shortKey, pricing);
-        }
-      }
-    }
-
-    _buildOpenRouterMap(data) {
       const models = data.data || [];
 
       for (const model of models) {
@@ -745,7 +587,6 @@
         const pricing = {
           input_cost_per_1m: promptPrice * 1000000,
           output_cost_per_1m: completionPrice * 1000000,
-          operator: 'equals',
           sourceModelName: model.id
         };
 
@@ -761,8 +602,7 @@
     }
 
     getPricing(modelName) {
-      // Use checkOperators for Helicone's includes/startsWith matching
-      return ModelMatcher.findMatch(this.pricingMap, modelName, { checkOperators: true });
+      return ModelMatcher.findMatch(this.pricingMap, modelName);
     }
   }
 
@@ -805,7 +645,6 @@
       const delay = this._prepareShow(element);
       const inputCost = convertCostToUnit(pricing.input_cost_per_1m || 0, currentTokenUnit);
       const outputCost = convertCostToUnit(pricing.output_cost_per_1m || 0, currentTokenUnit);
-      const providerName = CONFIG.PROVIDERS[currentProvider]?.name || 'Unknown';
       const sourceModelName = pricing.sourceModelName || 'Unknown model';
 
       this._showTooltipContent(element, `
@@ -826,7 +665,7 @@
             <span class="lmarena-price-tooltip__value">$${formatCost(outputCost)}</span>
           </div>
         </div>
-        <div class="lmarena-price-tooltip__source">Source: ${providerName}</div>
+        <div class="lmarena-price-tooltip__source">Source: OpenRouter</div>
       `, delay);
     }
 
@@ -1127,10 +966,8 @@
       this.loadingManager = loadingManager;
       this.sortManager = sortManager;
       this.processedTables = new WeakSet();
-      this.injectedCells = [];
       this.injectedBfbCells = [];
       this.injectedAgeCells = [];
-      this.injectedContextWindowCells = [];
       this.injectedModalitiesCells = [];
     }
 
@@ -1145,7 +982,7 @@
 
       // Check if our headers are actually present in the header row
       // LMArena may keep the table element but replace header content, so check DOM directly
-      const hasOurHeaders = headerRow.querySelector('.lmarena-price-header');
+      const hasOurHeaders = headerRow.querySelector('.lmarena-bfb-header, .lmarena-age-header, .lmarena-mod-header');
 
       if (!hasOurHeaders) {
         // Mark table if not already marked
@@ -1153,13 +990,10 @@
           table.setAttribute(CONFIG.COLUMN_MARKER, 'true');
           this.processedTables.add(table);
         }
-        // Always inject Pricing header
-        this._injectHeader(headerRow, showLoading);
-        // Only inject extra columns when there is enough space
+        // Only inject Plus-exclusive columns when there is enough space
         if (!isPlainLeaderboard()) {
           this._injectBfbHeader(headerRow, showLoading);
           this._injectModelAgeHeader(headerRow, showLoading);
-          this._injectContextWindowHeader(headerRow, showLoading);
           this._injectModalitiesHeader(headerRow, showLoading);
         }
 
@@ -1175,10 +1009,8 @@
 
     // Check if a th is one of our injected headers
     _isInjectedHeader(th) {
-      return th.classList.contains('lmarena-price-header') ||
-        th.classList.contains('lmarena-bfb-header') ||
+      return th.classList.contains('lmarena-bfb-header') ||
         th.classList.contains('lmarena-age-header') ||
-        th.classList.contains('lmarena-ctx-header') ||
         th.classList.contains('lmarena-mod-header') ||
         (th.hasAttribute && th.hasAttribute(CONFIG.COLUMN_MARKER));
     }
@@ -1196,7 +1028,7 @@
       const nativeButtonClasses = nativeButton ? Array.from(nativeButton.classList) : [];
 
       headerRow.querySelectorAll(
-        '.lmarena-price-header, .lmarena-bfb-header, .lmarena-age-header, .lmarena-ctx-header, .lmarena-mod-header'
+        '.lmarena-bfb-header, .lmarena-age-header, .lmarena-mod-header'
       ).forEach(th => {
         for (const cls of nativeClasses) {
           if (!cls.includes('rounded') && !cls.startsWith('border') &&
@@ -1246,11 +1078,9 @@
         newRowCount++;
         row.setAttribute(CONFIG.ROW_MARKER, 'true');
 
-        this._injectCell(row, modelColumnIndex, showLoading);
         if (!isPlainLeaderboard()) {
           this._injectBfbCell(row, modelColumnIndex, arenaScoreColumnIndex, showLoading);
           this._injectModelAgeCell(row, modelColumnIndex, showLoading);
-          this._injectContextWindowCell(row, modelColumnIndex, showLoading);
           this._injectModalitiesCell(row, modelColumnIndex, showLoading);
         }
       });
@@ -1258,27 +1088,8 @@
       return newRowCount;
     }
 
-    updatePricingHeader() {
-      if (this.pricingHeaderButton && this.pricingHeaderButton.isConnected) {
-        const unitLabel = getTokenUnitLabel(currentTokenUnit);
-        // Preserve the current sort icon state
-        const iconContainer = this.pricingHeaderButton.querySelector('.lmarena-sort-icon-container');
-        const currentIcon = iconContainer ? iconContainer.innerHTML : SORT_ICONS.default;
-        this.pricingHeaderButton.innerHTML = `Pricing <span class="lmarena-sort-icon-container">${currentIcon}</span>`;
-      }
-    }
-
     updateAllCells() {
-      for (const cellData of this.injectedCells) {
-        const { cell, modelName } = cellData;
-
-        if (!cell.isConnected) continue;
-
-        cell.classList.remove('lmarena-price-cell--loading');
-        this._updateCellContent(cell, modelName);
-      }
-
-      // Update Elo per Dollar cells
+      // Update Bang for Buck cells
       for (const cellData of this.injectedBfbCells) {
         const { cell, modelName, arenaScore, rank } = cellData;
 
@@ -1299,16 +1110,6 @@
 
         cell.classList.remove('lmarena-age-cell--loading');
         this._updateModelAgeCellContent(cell, modelName);
-      }
-
-      // Update Context Window cells
-      for (const cellData of this.injectedContextWindowCells) {
-        const { cell, modelName } = cellData;
-
-        if (!cell.isConnected) continue;
-
-        cell.classList.remove('lmarena-ctx-cell--loading');
-        this._updateContextWindowCellContent(cell, modelName);
       }
 
       // Update Modalities cells
@@ -1372,15 +1173,11 @@
     }
 
     setAllCellsLoading() {
-      const cells = this.injectedCells.filter(c => c.cell.isConnected).map(c => c.cell);
       const bfbCells = this.injectedBfbCells.filter(c => c.cell.isConnected).map(c => c.cell);
       const ageCells = this.injectedAgeCells.filter(c => c.cell.isConnected).map(c => c.cell);
-      const ctxCells = this.injectedContextWindowCells.filter(c => c.cell.isConnected).map(c => c.cell);
       const modCells = this.injectedModalitiesCells.filter(c => c.cell.isConnected).map(c => c.cell);
-      this.loadingManager.setLoading(cells, true, 'price');
       this.loadingManager.setLoading(bfbCells, true, 'bfb');
       this.loadingManager.setLoading(ageCells, true, 'age');
-      this.loadingManager.setLoading(ctxCells, true, 'ctx');
       this.loadingManager.setLoading(modCells, true, 'mod');
     }
 
@@ -1395,13 +1192,11 @@
       document.querySelectorAll('table[data-lmarena-scrollable]').forEach(el => {
         delete el.dataset.lmarenaScrollable;
       });
-      document.querySelectorAll('.lmarena-price-header, .lmarena-price-cell, .lmarena-bfb-header, .lmarena-bfb-cell, .lmarena-age-header, .lmarena-age-cell, .lmarena-ctx-header, .lmarena-ctx-cell, .lmarena-mod-header, .lmarena-mod-cell').forEach(el => {
+      document.querySelectorAll('.lmarena-bfb-header, .lmarena-bfb-cell, .lmarena-age-header, .lmarena-age-cell, .lmarena-mod-header, .lmarena-mod-cell').forEach(el => {
         el.remove();
       });
-      this.injectedCells = [];
       this.injectedBfbCells = [];
       this.injectedAgeCells = [];
-      this.injectedContextWindowCells = [];
       this.injectedModalitiesCells = [];
       this.processedTables = new WeakSet();
     }
@@ -1442,7 +1237,7 @@
         const text = cells[i].textContent.toLowerCase().trim();
         // Look for Arena Score, Elo, or Score columns
         if (text === 'arena score' || text === 'elo' || text === 'score' ||
-          text.includes('arena') || text.includes('elo')) {
+          text.includes('arena') || text.includes('elo') || text.includes('score')) {
           return i;
         }
       }
@@ -1557,10 +1352,10 @@
         arenaScore = parseFloat(scoreText);
       }
 
-      // In Labs view, column 0 is Lab Rank and column 1 is Model Rank.
+      // In Labs view the columns are: Lab Rank(0), Lab(1), Model Score(2), Model Rank(3).
       // Always use the model rank for BfB calculation.
       let rank = 1;
-      const rankColIdx = isLabsView() ? 1 : 0;
+      const rankColIdx = isLabsView() ? 3 : 0;
       if (cells[rankColIdx]) {
         const rankText = cells[rankColIdx].textContent.trim();
         const parsedRank = parseInt(rankText.replace(/[^0-9]/g, ''), 10);
@@ -2030,6 +1825,114 @@
   }
 
   // ============================================
+  // Edit Columns Panel Injection
+  // ============================================
+
+  const PLUS_COLUMNS = [
+    { key: 'bang-for-buck', label: 'Bang for Buck' },
+    { key: 'model-age', label: 'Model Age' },
+    { key: 'modalities', label: 'Modalities' }
+  ];
+
+  function createPlusToggleItem(column) {
+    const isChecked = currentColumnVisibility[column.key] !== false;
+    const state = isChecked ? 'checked' : 'unchecked';
+
+    const wrapper = document.createElement('div');
+    wrapper.dataset.lmarenaPlusColumn = column.key;
+
+    const inner = document.createElement('div');
+    inner.className = 'border-border-faint bg-surface-tertiary overflow-hidden rounded-lg border';
+
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 px-3 py-2';
+
+    // Plus badge instead of drag handle
+    const badge = document.createElement('span');
+    badge.textContent = 'Plus';
+    badge.style.cssText = 'font-size:9px;letter-spacing:0.1em;text-transform:uppercase;opacity:0.5;font-family:monospace;padding:1px 4px;border:1px solid currentColor;border-radius:2px;flex-shrink:0;';
+
+    const label = document.createElement('span');
+    label.className = 'flex-1 text-sm';
+    label.textContent = column.label;
+
+    // Recreate the Radix-style switch
+    const switchBtn = document.createElement('button');
+    switchBtn.type = 'button';
+    switchBtn.role = 'switch';
+    switchBtn.setAttribute('aria-checked', String(isChecked));
+    switchBtn.dataset.state = state;
+    switchBtn.value = isChecked ? 'on' : 'off';
+    switchBtn.className = 'focus-visible:ring-ring focus-visible:ring-offset-background data-[state=checked]:bg-primary data-[state=unchecked]:bg-input peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
+    const thumb = document.createElement('span');
+    thumb.dataset.state = state;
+    thumb.className = 'bg-background group pointer-events-none flex h-4 w-4 items-center justify-center rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0';
+
+    // Checkmark SVG inside thumb
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '1.5em');
+    svg.setAttribute('height', '1.5em');
+    svg.setAttribute('stroke-width', '1.5');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.classList.add('text-primary', 'h-3', 'w-3', 'opacity-0', 'transition-opacity', 'group-data-[state=checked]:opacity-100');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M5 13L9 17L19 7');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    thumb.appendChild(svg);
+    switchBtn.appendChild(thumb);
+
+    // Toggle handler
+    switchBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const newChecked = switchBtn.dataset.state !== 'checked';
+      const newState = newChecked ? 'checked' : 'unchecked';
+      switchBtn.dataset.state = newState;
+      switchBtn.setAttribute('aria-checked', String(newChecked));
+      switchBtn.value = newChecked ? 'on' : 'off';
+      thumb.dataset.state = newState;
+
+      currentColumnVisibility[column.key] = newChecked;
+      applyColumnVisibility();
+      chrome.storage.sync.set({ [CONFIG.COLUMN_VISIBILITY_KEY]: { ...currentColumnVisibility } });
+    });
+
+    row.appendChild(badge);
+    row.appendChild(label);
+    row.appendChild(switchBtn);
+    inner.appendChild(row);
+    wrapper.appendChild(inner);
+
+    return wrapper;
+  }
+
+  function injectPlusColumnsIntoPanel(container) {
+    container.dataset.lmarenaPlusInjected = 'true';
+
+    for (const column of PLUS_COLUMNS) {
+      const item = createPlusToggleItem(column);
+      container.appendChild(item);
+    }
+  }
+
+  function startEditColumnsPanelObserver() {
+    const observer = new MutationObserver(() => {
+      // Look for Arena's Edit Columns panel container
+      const panels = document.querySelectorAll('.flex.flex-col.gap-1\\.5.p-3');
+      for (const panel of panels) {
+        if (!panel.dataset.lmarenaPlusInjected && panel.closest('[data-state="open"]')) {
+          injectPlusColumnsIntoPanel(panel);
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // ============================================
   // Main Initialization
   // ============================================
   let pricingService, contextService, tooltipManager, loadingManager, sortManager, columnInjector, tableObserver, notificationManager;
@@ -2050,7 +1953,7 @@
 
     // Fetch pricing and context data in parallel
     await Promise.all([
-      pricingService.initialize(currentProvider),
+      pricingService.initialize(),
       contextService.initialize()
     ]);
 
@@ -2077,26 +1980,16 @@
 
     // Listen for preference changes from popup
     chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-      if (message.type === 'TOKEN_UNIT_CHANGED') {
-        currentTokenUnit = message.value;
-        columnInjector.updatePricingHeader();
-        columnInjector.updateAllCells();
-      } else if (message.type === 'PROVIDER_CHANGED') {
-        currentProvider = message.value;
-        columnInjector.setAllCellsLoading();
-        await pricingService.switchProvider(currentProvider);
-        columnInjector.updateAllCells();
-        applyColumnVisibility();
-      } else if (message.type === 'COLUMN_VISIBILITY_CHANGED') {
-        currentColumnVisibility = message.value;
-        applyColumnVisibility();
-      } else if (message.type === 'BATTLE_NOTIFICATION_CHANGED') {
+      if (message.type === 'BATTLE_NOTIFICATION_CHANGED') {
         battleNotificationEnabled = message.value;
         if (notificationManager) {
           notificationManager.setEnabled(battleNotificationEnabled);
         }
       }
     });
+
+    // Start watching for Arena's Edit Columns panel
+    startEditColumnsPanelObserver();
   }
 
   if (document.readyState === 'loading') {

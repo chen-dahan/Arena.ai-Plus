@@ -1,15 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Arena.ai Plus",
-  "version": "3.0.1",
-  "description": "Enhances the Arena.ai leaderboards with Pricing, Bang for Buck, Context Size & Modalities columns, plus gen alerts!",
+  "version": "3.1.0",
+  "description": "Adds Bang for Buck, Model Age & Modalities columns to the Arena.ai leaderboard, integrated into the native column picker.",
   "permissions": [
     "storage",
     "tabs"
   ],
   "host_permissions": [
-    "https://www.helicone.ai/*",
-    "https://raw.githubusercontent.com/*",
     "https://openrouter.ai/*"
   ],
   "action": {

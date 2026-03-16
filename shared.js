@@ -15,7 +15,7 @@
 const COLUMN_TOOLTIPS = {
     pricing: {
         title: 'Pricing',
-        description: 'Cost per token to use this model. Shows combined input + output cost, with breakdown on hover.'
+        description: 'Native Arena.ai column showing cost per token. Use the column picker to toggle visibility.'
     },
     'bang-for-buck': {
         title: 'Bang for Buck',
@@ -23,7 +23,7 @@ const COLUMN_TOOLTIPS = {
     },
     'context-window': {
         title: 'Context Size',
-        description: 'Maximum tokens the model can process. Larger context = longer conversations or documents.'
+        description: 'Native Arena.ai column showing maximum tokens the model can process.'
     },
     modalities: {
         title: 'Modalities',

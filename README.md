@@ -6,19 +6,13 @@
 [![Manifest](https://img.shields.io/badge/manifest-v3-green.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![License](https://img.shields.io/badge/license-GPLv3-orange.svg)](LICENSE)
 
-**Arena.ai Plus** is a Chrome Extension that infuses the power of Arena.ai's human-vetted blind scoring with the context needed to make actual business decisions. It enriches the [Arena.ai](https://arena.ai/leaderboard) leaderboards with real-time pricing data, a "Bang for Buck" value metric, and deeper model insights - helping you **save on API expenses** by picking the smartest model at the right price.
+**Arena.ai Plus** is a Chrome Extension that enriches the [Arena.ai](https://arena.ai/leaderboard) leaderboards with a "Bang for Buck" value metric, model age tracking, and modality insights - helping you **save on API expenses** by picking the smartest model at the right price.
+
+> **Note - Reduced Scope:** Arena.ai has been steadily adding native features that were originally introduced by this extension - including Pricing, Context Size, and most recently a built-in column picker. As Arena's vanilla experience catches up, the scope of this extension has naturally narrowed. We now focus exclusively on the remaining Plus-exclusive columns (Bang for Buck, Model Age, Modalities) and generation alerts, integrated directly into Arena's native column picker.
 
 ---
 
 ## Key Features
-
-### <img src="icons/arenaaiplus-icon.svg" width="16" align="center"> Real-Time Pricing Integration
-See what every model actually costs, right inside the leaderboard. Arena.ai Plus injects a **Pricing** column with fresh data from your choice of provider:
-- **OpenRouter**
-- **Helicone**
-- **LiteLLM**
-
-Switch providers or toggle token units (1M / 100K) from the extension popup.
 
 ### <img src="icons/arenaaiplus-icon.svg" width="16" align="center"> "Bang for Buck" Index
 The core value metric - designed to surface the **smartest models for the lowest price**.
@@ -28,7 +22,6 @@ The core value metric - designed to surface the **smartest models for the lowest
 
 ### <img src="icons/arenaaiplus-icon.svg" width="16" align="center"> Deep Model Insights
 - **Model Age** - See how many days since each model was released, so you can spot the newest contenders at a glance.
-- **Context Window** - Instantly see the maximum token limit for every model.
 - **Modalities** - Visual icons indicating support for Text, Image, Audio, or Video (both Input and Output).
 
 ### <img src="icons/arenaaiplus-icon.svg" width="16" align="center"> Generation Alerts
@@ -39,9 +32,7 @@ Get browser notifications when a generation completes:
 Perfect for long code generations where you've switched to another tab.
 
 ### <img src="icons/arenaaiplus-icon.svg" width="16" align="center"> Seamless UI Integration
-- **Light & Dark Mode** - All injected elements adapt automatically.
-- **Smart Tooltips** - Detailed cost breakdowns (Input vs. Output) appear on hover.
-- **Column Picker** - Toggle any column (native or Plus) on or off via the extension popup to keep your view clean and focused.
+- **Native Column Picker** - Plus columns appear directly in Arena's built-in "Edit Columns" panel, so you can toggle them on or off alongside native columns.
 - **Native Sorting** - All injected columns are fully sortable, integrating with Arena.ai's table controls.
 
 ---
@@ -64,7 +55,7 @@ Perfect for long code generations where you've switched to another tab.
 
 ## The "Bang for Buck" Logic
 
-We believe that intelligence shouldn't always come at a premium. The algorithm calculates value by:
+We believe that intelligence shouldn't always come at a premium. The algorithm uses pricing data from [OpenRouter](https://openrouter.ai) and calculates value by:
 1. **Measuring Relative Intelligence** - Subtracting a baseline from the Arena Score.
 2. **Scaling Cost** - Using a logarithmic curve so expensive models aren't unfairly penalized for minor price jumps.
 3. **Weighting Quality** - Applying a gentle decay to lower ranks, ensuring a rank #1 model is valued higher than a rank #50 model even when their price/score ratio is similar.
@@ -81,4 +72,4 @@ Distributed under the GPLv3 License. See `LICENSE` for more information.
 
 ---
 
-*Note: This extension is not affiliated with Arena.ai or Chatbot Arena. Pricing data is fetched from public APIs of the respective providers.*
+*Note: This extension is not affiliated with Arena.ai or Chatbot Arena. Pricing data is fetched from the [OpenRouter](https://openrouter.ai) public API.*
